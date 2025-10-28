@@ -16,6 +16,7 @@ import java.util.List;
 @Slf4j
 @Service
 public class StatsWebClient extends BaseWebClient {
+
     private static final String API_PREFIX = "";
 
     public StatsWebClient(@Value("${stats-server.url}") String serverUrl) {

@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import ru.practicum.base.BaseWebClient;
 import ru.practicum.hit.NewHitRequest;
 import ru.practicum.hit.ViewStatsDto;
-
 import java.time.LocalDateTime;
 import java.util.List;
 

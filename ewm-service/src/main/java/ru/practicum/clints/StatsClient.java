@@ -19,6 +19,8 @@ public class StatsClient {
 
     public void addHit(NewHitRequest request) {
         try {
+            log.info("Sending hit to stats service: {}", request);
+
             webClient.post()
                     .uri("/hit")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -26,7 +28,7 @@ public class StatsClient {
                     .retrieve()
                     .toBodilessEntity()
                     .doOnSuccess(response -> {
-                        log.info("Hit saved successfully");
+                        log.info("Hit saved successfully to stats service");
                     })
                     .doOnError(throwable -> {
                         log.error("Hit save failed : {}", throwable.getMessage());

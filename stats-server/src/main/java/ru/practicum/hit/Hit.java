@@ -2,6 +2,7 @@ package ru.practicum.hit;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
 
@@ -14,21 +15,22 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Builder
-public class Hit implements HitData {
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class Hit {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @EqualsAndHashCode.Include
-    private Integer id;
+    Integer id;
 
     @Column(nullable = false)
-    private String app;
+    String app;
 
     @Column(nullable = false)
-    private String uri;
+    String uri;
 
     @Column(nullable = false)
-    private String ip;
+    String ip;
 
     @Column(nullable = false)
-    private LocalDateTime timestamp;
+    LocalDateTime timestamp;
 }

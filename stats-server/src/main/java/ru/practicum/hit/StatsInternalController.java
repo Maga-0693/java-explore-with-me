@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -25,27 +27,47 @@ public class StatsInternalController {
     }
 
     @GetMapping("/stats")
-    public List<ViewStatsDto> stats(
+    public ResponseEntity<?> stats(
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime start,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end,
             @RequestParam(required = false) List<String> uris,
             @RequestParam(defaultValue = "false") boolean unique
     ) {
-        validateTimeRange(start, end);
+        try {
+            validateTimeRange(start, end);
 
-        log.info("Getting stats for period: {} - {}, uris: {}, unique: {}",
-                start, end, uris, unique);
+            log.info("Getting stats for period: {} - {}, uris: {}, unique: {}",
+                    start, end, uris, unique);
 
-        return statsService.getStats(start, end, uris, unique);
+            List<ViewStatsDto> stats = statsService.getStats(start, end, uris, unique);
+            return ResponseEntity.ok(stats);
+
+        } catch (IllegalArgumentException ex) {
+            log.warn("Bad request for stats: {}", ex.getMessage());
+            return ResponseEntity.badRequest().body(createErrorResponse(ex.getMessage()));
+        }
     }
 
     private void validateTimeRange(LocalDateTime start, LocalDateTime end) {
-        if (start == null || end == null) {
-            throw new IllegalArgumentException("Start and end time must not be null");
+        if (start == null) {
+            throw new IllegalArgumentException("Start time must not be null");
+        }
+
+        if (end == null) {
+            throw new IllegalArgumentException("End time must not be null");
         }
 
         if (end.isBefore(start)) {
             throw new IllegalArgumentException("End time must be after start time");
         }
+    }
+
+    private ErrorResponse createErrorResponse(String message) {
+        return ErrorResponse.builder()
+                .timestamp(LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Bad Request")
+                .message(message)
+                .build();
     }
 }

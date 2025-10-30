@@ -137,13 +137,18 @@ public class PublicService {
     }
 
     private void sendHitToStats(String clientIp, String uri) {
-        NewHitRequest hitRequest = NewHitRequest.builder()
-                .app("ewm-main-service")
-                .uri(uri)
-                .ip(clientIp)
-                .timestamp(LocalDateTime.now())
-                .build();
+        try {
+            NewHitRequest hitRequest = NewHitRequest.builder()
+                    .app("ewm-main-service")
+                    .uri(uri)
+                    .ip(clientIp)
+                    .timestamp(LocalDateTime.now())
+                    .build();
 
-        statsClient.addHit(hitRequest);
+            log.info("Sending hit to stats: {}", hitRequest);
+            statsClient.addHit(hitRequest);
+        } catch (Exception e) {
+            log.error("Failed to send hit to stats service", e);
+        }
     }
 }

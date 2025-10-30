@@ -13,6 +13,7 @@ public class StatsClient {
     protected final WebClient webClient;
 
     public StatsClient(@Value("${stats-server.url}") String statsUrl) {
+
         this.webClient = WebClient.create(statsUrl);
     }
 

@@ -21,6 +21,7 @@ public class AdminWebCategoriesClient extends BaseWebClient {
     private static final String API_PREFIX = "/admin/categories";
 
     public AdminWebCategoriesClient(@Value("${ewm-service.url}") String baseUrl) {
+
         super(baseUrl, API_PREFIX);
     }
 

@@ -65,10 +65,15 @@ public class AdminService {
         log.info("Finding all users by ids {}", ids);
         Pageable pageable = PageRequest.of(from / size, size);
 
-        List<User> users = (ids != null && !ids.isEmpty())
-                ? userRepository.findUsersByIds(ids, pageable)
-                : userRepository.findAllBy(pageable);
+        if (ids != null && !ids.isEmpty()) {
+            List<User> users = userRepository.findUsersByIds(ids, pageable);
+            log.info("Found {} users by ids {}", users.size(), users);
 
+            return users.stream()
+                    .map(userMapper::userToUserDto)
+                    .collect(Collectors.toList());
+        }
+        List<User> users = userRepository.findAllBy(pageable);
         log.info("Found {} users by ids {}", users.size(), users);
 
         return users.stream()
@@ -144,7 +149,7 @@ public class AdminService {
             Integer from,
             Integer size
     ) {
-        log.info("-------------------------------");
+        log.info("--------------------------------");
         log.info("Get by filters users: {}, states: {}, categorise: {}," +
                 " rangeStart: {}, rangeEnd: {}, from: {}, size: {}", users, states, categories, rangeStart, rangeEnd, from, size);
 
@@ -161,7 +166,7 @@ public class AdminService {
 
         return eventList.stream()
                 .map(eventMapper::toDto)
-                .toList();
+                .collect(Collectors.toList());
 
     }
 
@@ -176,7 +181,7 @@ public class AdminService {
                         }
 
                     })
-                    .toList();
+                    .collect(Collectors.toList());
         }
         return null;
     }
@@ -186,7 +191,6 @@ public class AdminService {
 
         Event event = eventRepository.findById(eventId).orElseThrow(
                 () -> new NotFoundException("Event with id=" + eventId + " was not found"));
-
 
         if (request.hasAnnotation()) {
             log.info("set annotation {}", request.getAnnotation());
@@ -291,16 +295,6 @@ public class AdminService {
         log.info("Compilation created with id: {}", compilation.getId());
 
         return compilationsMapper.toDto(compilation);
-    }
-
-    private List<Event> getEventsForCompilation(NewCompilationRequest request) {
-        if (request.getEvents() != null) {
-            List<Event> events = eventRepository.findByIdIn(request.getEvents());
-            log.info("Found {} events", events.size());
-            logMissedIds(events, request);
-            return events;
-        }
-        return Collections.emptyList();
     }
 
     private void logMissedIds(List<Event> events, Requestable request) {

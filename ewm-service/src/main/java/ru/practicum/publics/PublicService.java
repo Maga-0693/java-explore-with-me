@@ -123,7 +123,7 @@ public class PublicService {
                 size);
 
         if (!events.isEmpty()) {
-            events.forEach(event -> {
+            events.stream().forEach(event -> {
                 event.setViews(event.getViews() + 1);
                 eventRepository.save(event);
             });

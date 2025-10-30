@@ -162,5 +162,4 @@ public class GatewayExceptionHandler {
                 ex.getMessage()
         );
     }
-
 }

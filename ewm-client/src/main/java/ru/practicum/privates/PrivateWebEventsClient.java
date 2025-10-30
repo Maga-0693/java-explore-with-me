@@ -21,6 +21,7 @@ public class PrivateWebEventsClient extends BaseWebClient {
     private static final String API_PREFIX = "/users";
 
     public PrivateWebEventsClient(@Value("${ewm-service.url}") String baseUrl) {
+
         super(baseUrl, API_PREFIX);
     }
 

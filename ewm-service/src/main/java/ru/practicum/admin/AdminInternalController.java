@@ -58,6 +58,7 @@ public class AdminInternalController {
     @DeleteMapping("/categories/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteCategory(@PathVariable Long id) {
+
         adminService.deleteCategory(id);
     }
 
@@ -103,11 +104,13 @@ public class AdminInternalController {
     @DeleteMapping("/compilations/{compId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteCompilation(@PathVariable Long compId) {
+
         adminService.deleteCompilation(compId);
     }
 
     @GetMapping("/compilations/{compId}")
     public CompilationDto getCompilation(@PathVariable Long compId) {
+
         return adminService.getCompilation(compId);
     }
 

@@ -123,45 +123,37 @@ public class PrivateService {
             log.info("Set annotation {}", request.hasAnnotation());
             event.setAnnotation(request.getAnnotation());
         }
-
         if (request.hasCategory()) {
             event.setCategory(categoryRepository.findById(request.getCategory()).orElseThrow(
                     () -> new NotFoundException("Category with id=" + request.getCategory() + " was not found")
             ));
             log.info("Set category {}", request.getCategory());
         }
-
         if (request.hasDescription()) {
             log.info("Set event description {}", request.hasDescription());
             event.setDescription(request.getDescription());
         }
-
         if (request.hasLocation()) {
             Location location = new Location(request.getLocation().getLat(), request.getLocation().getLon());
             log.info("Set location {}", location);
             event.setLocation(location);
         }
-
         if (request.hasParticipantLimit()) {
             log.info("Set participant limit {}", request.hasParticipantLimit());
             event.setParticipantLimit(request.getParticipantLimit());
         }
-
         if (request.hasRequestModeration()) {
             log.info("Set request moderation {}", request.hasRequestModeration());
             event.setRequestModeration(request.getRequestModeration());
         }
-
         if (request.hasTitle()) {
             log.info("Set title {}", request.hasTitle());
             event.setTitle(request.getTitle());
         }
-
         if (request.hasPaid()) {
             log.info("Set paid {}", request.hasPaid());
             event.setPaid(request.getPaid());
         }
-
         if (request.hasEventDate()) {
             log.info("Set event date {}", request.hasEventDate());
             event.setEventDate(request.getEventDate());

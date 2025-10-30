@@ -22,6 +22,7 @@ public class AdminWebUserClient extends BaseWebClient {
     private static final String API_PREFIX_USERS = "/admin/users";
 
     public AdminWebUserClient(@Value("${ewm-service.url}") String serverUrl) {
+
         super(serverUrl, API_PREFIX_USERS);
     }
 

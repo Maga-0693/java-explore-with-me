@@ -39,7 +39,7 @@ public class PublicWebClientCompilations extends BaseWebClient {
                 .retrieve()
                 .onStatus(status -> status == HttpStatus.NOT_FOUND,
                         response -> {
-                            throw new NotFoundException("Compilation with id=" + compId + " was not found");
+                            throw new NotFoundException(String.format("Compilation with id=%d was not found", compId));
                         })
                 .bodyToMono(CompilationDto.class)
                 .block();

@@ -29,7 +29,7 @@ public class PrivateWebEventsClient extends BaseWebClient {
         try {
 
             return webClient.post()
-                    .uri("/" + userId + "/events")
+                    .uri(String.format("/%d/events", userId))
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(request)
                     .retrieve()
@@ -46,7 +46,7 @@ public class PrivateWebEventsClient extends BaseWebClient {
     public EventDto getEvent(Long userId, Long eventId) {
         try {
             return webClient.get()
-                    .uri("/" + userId + "/events/" + eventId)
+                    .uri(String.format("/%d/events/%d", userId, eventId))
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
                     .bodyToMono(EventDto.class)
@@ -63,14 +63,14 @@ public class PrivateWebEventsClient extends BaseWebClient {
     public Mono<List<EventDto>> getUserEvents(Long userId, Integer from, Integer size) {
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder
-                        .path("/" + userId + "/events")
+                        .path(String.format("/%d/events", userId))
                         .queryParam("from", from)
                         .queryParam("size", size)
                         .build())
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .onStatus(status -> status == HttpStatus.NOT_FOUND, response -> {
-                    throw new NotFoundException("User with id=" + userId + " was not found");
+                    throw new NotFoundException(String.format("User with id=%d was not found", userId));
                 })
                 .bodyToFlux(EventDto.class)
                 .collectList();
@@ -79,7 +79,7 @@ public class PrivateWebEventsClient extends BaseWebClient {
     public EventDto updateEvent(Long userId, Long eventId, UpdateEventRequest request) {
         try {
             return webClient.patch()
-                    .uri("/" + userId + "/events/" + eventId)
+                    .uri(String.format("/%d/events/%d", userId, eventId))
                     .accept(MediaType.APPLICATION_JSON)
                     .bodyValue(request)
                     .retrieve()

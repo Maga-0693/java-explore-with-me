@@ -47,11 +47,11 @@ public class AdminCompilationClient extends BaseWebClient {
 
     public void deleteCompilation(Long compId) {
         webClient.delete()
-                .uri("/" + compId)
+                .uri(String.format("/%d", compId))
                 .retrieve()
                 .onStatus(status -> status == HttpStatus.NOT_FOUND,
                         response -> {
-                            throw new NotFoundException("Compilation with id=" + compId + " was not found");
+                            throw new NotFoundException(String.format("Compilation with id=%d was not found", compId));
                         })
                 .toBodilessEntity()
                 .doOnSuccess(response -> {
@@ -63,12 +63,12 @@ public class AdminCompilationClient extends BaseWebClient {
 
     public CompilationDto getCompilation(Long compId) {
         return webClient.get()
-                .uri("/" + compId)
+                .uri(String.format("/%d", compId))
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .onStatus(status -> status == HttpStatus.NOT_FOUND,
                         response -> {
-                            throw new NotFoundException("Compilation with id=" + compId + " was not found");
+                            throw new NotFoundException(String.format("Compilation with id=%d was not found", compId));
                         })
                 .bodyToMono(CompilationDto.class)
                 .block();
@@ -76,20 +76,20 @@ public class AdminCompilationClient extends BaseWebClient {
 
     public CompilationDto updateCompilation(Long compId, UpdateCompilationRequest request) {
         return webClient.patch()
-                .uri("/" + compId)
+                .uri(String.format("/%d", compId))
                 .accept(MediaType.APPLICATION_JSON)
                 .bodyValue(request)
                 .retrieve()
                 .onStatus(status -> status == HttpStatus.NOT_FOUND,
                         response -> {
-                            throw new NotFoundException("Compilation with id=" + compId + " was not found");
+                            throw new NotFoundException(String.format("Compilation with id=%d was not found", compId));
                         })
                 .onStatus(status -> status == HttpStatus.CONFLICT,
                         response -> {
-                            throw new DataConflictException("could not execute statement; " +
-                                    "SQL [n/a]; constraint" + request.getTitle() +
-                                    "; nested exception is org.hibernate.exception.ConstraintViolationException:" +
-                                    " could not execute statement");
+                            throw new DataConflictException(String.format(
+                                    "could not execute statement; SQL [n/a]; constraint %s; " +
+                                            "nested exception is org.hibernate.exception.ConstraintViolationException: " +
+                                            "could not execute statement", request.getTitle()));
                         })
                 .bodyToMono(CompilationDto.class)
                 .doOnSuccess(response -> {

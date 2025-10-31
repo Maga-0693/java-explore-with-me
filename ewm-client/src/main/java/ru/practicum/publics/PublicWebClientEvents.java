@@ -64,11 +64,11 @@ public class PublicWebClientEvents extends BaseWebClient {
                 .retrieve()
                 .onStatus(status -> status == HttpStatus.NOT_FOUND,
                         response -> {
-                            throw new NotFoundException("Event with id=" + id + " was not found");
+                            throw new NotFoundException(String.format("Event with id=%d was not found", id));
                         })
                 .onStatus(status -> status == HttpStatus.CONFLICT,
                         response -> {
-                            throw new EventDataException("Event with id=" + id + " was not published");
+                            throw new EventDataException(String.format("Event with id=%d was not published", id));
                         })
                 .bodyToMono(EventDto.class)
                 .block();

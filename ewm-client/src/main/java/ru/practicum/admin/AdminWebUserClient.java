@@ -53,16 +53,16 @@ public class AdminWebUserClient extends BaseWebClient {
     public void deleteUser(Long id) {
         try {
             webClient.delete()
-                    .uri("/" + id)
+                    .uri(String.format("/%d", id))
                     .retrieve()
                     .toBodilessEntity()
                     .doOnSuccess(response -> {
-                        log.info("Delete user: " + id);
+                        log.info(String.format("Delete user: %d", id));
                     })
                     .block();
         } catch (WebClientResponseException ex) {
             if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
-                throw new NotFoundException("User with id=" + id + " was not found");
+                throw new NotFoundException(String.format("User with id=%d was not found", id));
             }
             throw ex;
         }

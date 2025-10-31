@@ -24,6 +24,7 @@ public class PrivateWebRequestsClient extends BaseWebClient {
     private static final String API_PREFIX = "/users";
 
     public PrivateWebRequestsClient(@Value("${ewm-service.url}") String baseUrl) {
+
         super(baseUrl, API_PREFIX);
     }
 
@@ -31,7 +32,7 @@ public class PrivateWebRequestsClient extends BaseWebClient {
         try {
             return webClient.post()
                     .uri(uriBuilder -> uriBuilder
-                            .path("/" + userId + "/requests")
+                            .path(String.format("/%d/requests", userId))
                             .queryParam("eventId", eventId)
                             .build())
                     .accept(MediaType.APPLICATION_JSON)
@@ -50,11 +51,11 @@ public class PrivateWebRequestsClient extends BaseWebClient {
 
     public Mono<List<RequestDto>> getUserRequests(Long userId) {
         return webClient.get()
-                .uri("/" + userId + "/requests")
+                .uri(String.format("/%d/requests", userId))
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .onStatus(status -> status == HttpStatus.NOT_FOUND, response -> {
-                    throw new NotFoundException("User with id=" + userId + " was not found");
+                    throw new NotFoundException(String.format("User with id=%d was not found", userId));
                 })
                 .bodyToFlux(RequestDto.class)
                 .collectList();
@@ -64,7 +65,7 @@ public class PrivateWebRequestsClient extends BaseWebClient {
     public RequestDto cancelRequest(Long userId, Long requestId) {
         try {
             return webClient.patch()
-                    .uri("/" + userId + "/requests/" + requestId + "/cancel")
+                    .uri(String.format("/%d/requests/%d/cancel", userId, requestId))
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
                     .bodyToMono(RequestDto.class)
@@ -80,7 +81,7 @@ public class PrivateWebRequestsClient extends BaseWebClient {
     public Mono<List<RequestDto>> getRequestsByUserEvent(Long userId, Long eventId) {
         log.debug("getRequests({}, {})", userId, eventId);
         return webClient.get()
-                .uri("/" + userId + "/events/" + eventId + "/requests")
+                .uri(String.format("/%d/events/%d/requests", userId, eventId))
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .onStatus(status -> status == HttpStatus.NOT_FOUND,
@@ -89,8 +90,9 @@ public class PrivateWebRequestsClient extends BaseWebClient {
                         })
                 .onStatus(status -> status == HttpStatus.FORBIDDEN,
                         response -> {
-                            throw new ForbiddenException("You are not allowed to perform this action." +
-                                    " You are not initiator of event: " + eventId);
+                            throw new ForbiddenException(String.format(
+                                    "You are not allowed to perform this action. You are not initiator of event: %d",
+                                    eventId));
                         })
                 .bodyToFlux(RequestDto.class)
                 .collectList();
@@ -104,7 +106,7 @@ public class PrivateWebRequestsClient extends BaseWebClient {
 
         try {
             return webClient.patch()
-                    .uri("/" + userId + "/events/" + eventId + "/requests")
+                    .uri(String.format("/%d/events/%d/requests", userId, eventId))
                     .accept(MediaType.APPLICATION_JSON)
                     .bodyValue(request)
                     .retrieve()

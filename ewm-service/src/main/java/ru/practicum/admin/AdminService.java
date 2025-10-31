@@ -45,10 +45,9 @@ public class AdminService {
 
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new DataConflictException(
-                    "could not execute statement; SQL [n/a];" +
-                            " constraint " + request.getEmail() + ";" +
-                            " nested exception is org.hibernate.exception." +
-                            "ConstraintViolationException: could not execute statement");
+                    String.format("could not execute statement; SQL [n/a]; constraint %s; " +
+                            "nested exception is org.hibernate.exception.ConstraintViolationException: " +
+                            "could not execute statement", request.getEmail()));
         }
 
         User user = userRepository.save(User.builder()
@@ -84,7 +83,7 @@ public class AdminService {
     public void deleteUser(Long id) {
         log.info("Deleting user {}", id);
         if (!userRepository.existsById(id)) {
-            throw new NotFoundException("User with id=" + id + " was not found");
+            throw new NotFoundException(String.format("User with id=%d was not found", id));
         }
 
         userRepository.deleteById(id);
@@ -94,10 +93,10 @@ public class AdminService {
         log.info("Saving category {}", request);
 
         if (categoryRepository.existsByName((request.getName()))) {
-            throw new DataConflictException("could not execute statement; SQL [n/a];" +
-                    " constraint " + request.getName() + "; " +
-                    "nested exception is org.hibernate.exception" +
-                    ".ConstraintViolationException: could not execute statement");
+            throw new DataConflictException(String.format(
+                    "could not execute statement; SQL [n/a]; constraint %s; " +
+                            "nested exception is org.hibernate.exception.ConstraintViolationException: " +
+                            "could not execute statement", request.getName()));
         }
 
         Category category = categoryRepository.save(Category.builder()
@@ -112,7 +111,7 @@ public class AdminService {
         log.info("Deleting category {}", id);
 
         if (!categoryRepository.existsById(id)) {
-            throw new NotFoundException("Category with id=" + id + " was not found");
+            throw new NotFoundException(String.format("Category with id=%d was not found", id));
         }
         if (eventRepository.existsByCategory_Id(id)) {
             throw new CategoryConflictException("The category is not empty");
@@ -125,14 +124,14 @@ public class AdminService {
         log.info("Updating category {}", id);
 
         Category category = categoryRepository.findById(id).orElseThrow(
-                () -> new NotFoundException("Category with id=" + id + " was not found")
+                () -> new NotFoundException(String.format("Category with id=%d was not found", id))
         );
 
         if (!request.getName().equals(category.getName()) && categoryRepository.existsByName(request.getName())) {
-            throw new DataConflictException("could not execute statement; SQL [n/a];" +
-                    " constraint " + request.getName() + "; " +
-                    "nested exception is org.hibernate.exception" +
-                    ".ConstraintViolationException: could not execute statement");
+            throw new DataConflictException(String.format(
+                    "could not execute statement; SQL [n/a]; constraint %s; " +
+                            "nested exception is org.hibernate.exception.ConstraintViolationException: " +
+                            "could not execute statement", request.getName()));
         }
 
         category.setName(request.getName());
@@ -177,7 +176,7 @@ public class AdminService {
                         try {
                             return EventState.valueOf(state.toUpperCase());
                         } catch (IllegalArgumentException e) {
-                            throw new ValidationException("Invalid event state: " + state);
+                            throw new ValidationException(String.format("Invalid event state: %s", state));
                         }
 
                     })
@@ -190,7 +189,7 @@ public class AdminService {
         log.info("Updating event {} , by request : {}", eventId, request);
 
         Event event = eventRepository.findById(eventId).orElseThrow(
-                () -> new NotFoundException("Event with id=" + eventId + " was not found"));
+                () -> new NotFoundException(String.format("Event with id=%d was not found", eventId)));
 
         if (request.hasAnnotation()) {
             log.info("set annotation {}", request.getAnnotation());
@@ -199,7 +198,7 @@ public class AdminService {
         if (request.hasCategory()) {
             log.info("set category {}", request.getCategory());
             event.setCategory(categoryRepository.findById(request.getCategory()).orElseThrow(
-                    () -> new NotFoundException("Category with id=" + request.getCategory() + " was not found")
+                    () -> new NotFoundException(String.format("Category with id=%d was not found", request.getCategory()))
             ));
         }
         if (request.hasDescription()) {
@@ -230,9 +229,9 @@ public class AdminService {
         if (request.hasEventDate()) {
             log.info("set event date {}", request.getEventDate());
             if (request.getEventDate().isBefore(LocalDateTime.now().plusHours(1))) {
-                throw new EventDataException("Incorrect event date: " +
-                        request.getEventDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) +
-                        ". Event date must be at least 1 hour in the future");
+                throw new EventDataException(String.format(
+                        "Incorrect event date: %s. Event date must be at least 1 hour in the future",
+                        request.getEventDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
             }
             event.setEventDate(request.getEventDate());
         }
@@ -242,8 +241,9 @@ public class AdminService {
             switch (request.getStateAction()) {
                 case PUBLISH_EVENT -> {
                     if (!event.getState().equals(EventState.PENDING)) {
-                        throw new EventDataException("Cannot publish the event because it's " +
-                                "not in the right state: " + event.getState());
+                        throw new EventDataException(String.format(
+                                "Cannot publish the event because it's not in the right state: %s",
+                                event.getState()));
                     }
                     event.setState(EventState.PUBLISHED);
                     event.setPublishedOn(LocalDateTime.now());
@@ -251,8 +251,9 @@ public class AdminService {
                 }
                 case REJECT_EVENT -> {
                     if (!event.getState().equals(EventState.PENDING)) {
-                        throw new EventDataException("Cannot reject the event because it is not " +
-                                "in the right state: " + event.getState());
+                        throw new EventDataException(String.format(
+                                "Cannot reject the event because it is not in the right state: %s",
+                                event.getState()));
                     }
                     event.setState(EventState.CANCELED);
                     log.info("rejected event {}", event);
@@ -268,10 +269,10 @@ public class AdminService {
         log.info("Adding compilation {}", request);
 
         if (compilationsRepository.existsByTitle(request.getTitle())) {
-            throw new DataConflictException("could not execute statement; SQL [n/a];" +
-                    " constraint " + request.getTitle() +
-                    "; nested exception is org.hibernate.exception.ConstraintViolationException:" +
-                    " could not execute statement");
+            throw new DataConflictException(String.format(
+                    "could not execute statement; SQL [n/a]; constraint %s; " +
+                            "nested exception is org.hibernate.exception.ConstraintViolationException: " +
+                            "could not execute statement", request.getTitle()));
         }
 
         List<Event> events;
@@ -312,7 +313,7 @@ public class AdminService {
     public void deleteCompilation(Long compId) {
 
         if (!compilationsRepository.existsById(compId)) {
-            throw new NotFoundException("Compilation with id=" + compId + " was not found");
+            throw new NotFoundException(String.format("Compilation with id=%d was not found", compId));
         }
 
         compilationsRepository.deleteById(compId);
@@ -321,7 +322,7 @@ public class AdminService {
     @Transactional(readOnly = true)
     public CompilationDto getCompilation(Long compId) {
         Compilation compilation = compilationsRepository.findById(compId).orElseThrow(
-                () -> new NotFoundException("Compilation with id=" + compId + " was not found")
+                () -> new NotFoundException(String.format("Compilation with id=%d was not found", compId))
         );
         return compilationsMapper.toDto(compilation);
     }
@@ -330,14 +331,14 @@ public class AdminService {
         log.info("update compilation {}", request);
 
         if (compilationsRepository.existsByTitle(request.getTitle())) {
-            throw new DataConflictException("could not execute statement; " +
-                    "SQL [n/a]; constraint" + request.getTitle() +
-                    "; nested exception is org.hibernate.exception.ConstraintViolationException:" +
-                    " could not execute statement");
+            throw new DataConflictException(String.format(
+                    "could not execute statement; SQL [n/a]; constraint %s; " +
+                            "nested exception is org.hibernate.exception.ConstraintViolationException: " +
+                            "could not execute statement", request.getTitle()));
         }
 
         Compilation compilation = compilationsRepository.findById(compId).orElseThrow(
-                () -> new NotFoundException("Compilation with id=" + compId + " was not found")
+                () -> new NotFoundException(String.format("Compilation with id=%d was not found", compId))
         );
 
         if (request.hasEvents()) {

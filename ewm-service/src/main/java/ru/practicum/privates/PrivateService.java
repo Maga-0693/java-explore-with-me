@@ -38,11 +38,11 @@ public class PrivateService {
     public EventDto addEvent(Long userId, NewEventRequest request) {
         log.info("Adding event {}", request);
         User initiator = userRepository.findById(userId).orElseThrow(
-                () -> new NotFoundException("User with id=" + userId + "  was not found")
+                () -> new NotFoundException(String.format("User with id=%d was not found", userId))
         );
 
         Category category = categoryRepository.findById(request.getCategory()).orElseThrow(
-                () -> new NotFoundException("Category with id=" + request.getCategory() + " was not found")
+                () -> new NotFoundException(String.format("Category with id=%d was not found", request.getCategory()))
         );
 
         Location location = Location.builder()
@@ -74,11 +74,11 @@ public class PrivateService {
     public EventDto getEvent(Long userId, Long eventId) {
         log.info("Getting event {}", eventId);
         if (!userRepository.existsById(userId)) {
-            throw new NotFoundException("User with id=" + userId + " was not found");
+            throw new NotFoundException(String.format("User with id=%d was not found", userId));
         }
 
         Event event = eventRepository.findById(eventId).orElseThrow(
-                () -> new NotFoundException("Event with id=" + eventId + " was not found")
+                () -> new NotFoundException(String.format("Event with id=%d was not found", eventId))
         );
         log.info("Getting event {}", event);
         return eventMapper.toDto(event);
@@ -89,7 +89,7 @@ public class PrivateService {
         log.info("Getting user events from {} to {}", from, size);
 
         if (!userRepository.existsById(userId)) {
-            throw new NotFoundException("User with id=" + userId + " was not found");
+            throw new NotFoundException(String.format("User with id=%d was not found", userId));
         }
 
         Pageable pageable = PageRequest.of(from / size, size);
@@ -103,11 +103,11 @@ public class PrivateService {
     public EventDto updateEvent(Long userId, Long eventId, UpdateEventRequest request) {
         log.info("Updating event {}, as request: {}", eventId, request);
         if (!userRepository.existsById(userId)) {
-            throw new NotFoundException("User with id=" + userId + " was not found");
+            throw new NotFoundException(String.format("User with id=%d was not found", userId));
         }
 
         Event event = eventRepository.findById(eventId).orElseThrow(
-                () -> new NotFoundException("Event with id=" + eventId + " was not found")
+                () -> new NotFoundException(String.format("Event with id=%d was not found", eventId))
         );
 
         if (!event.getInitiator().getId().equals(userId)) {
@@ -125,7 +125,7 @@ public class PrivateService {
         }
         if (request.hasCategory()) {
             event.setCategory(categoryRepository.findById(request.getCategory()).orElseThrow(
-                    () -> new NotFoundException("Category with id=" + request.getCategory() + " was not found")
+                    () -> new NotFoundException(String.format("Category with id=%d was not found", request.getCategory()))
             ));
             log.info("Set category {}", request.getCategory());
         }
@@ -164,7 +164,7 @@ public class PrivateService {
             switch (request.getStateAction()) {
                 case SEND_TO_REVIEW -> event.setState(EventState.PENDING);
                 case CANCEL_REVIEW -> event.setState(EventState.CANCELED);
-                default -> throw new EventDataException("User cannot perform action: " + request.getStateAction());
+                default -> throw new EventDataException(String.format("User cannot perform action: %s", request.getStateAction()));
             }
             log.info("State  {}", event.getState());
         }
@@ -177,18 +177,17 @@ public class PrivateService {
     public List<RequestDto> getRequestsByUserEvent(Long userId, Long eventId) {
         log.info("Get requests for events from {} to user {}", eventId, userId);
         if (!userRepository.existsById(userId)) {
-            throw new NotFoundException("User with id=" + userId + " was not found");
+            throw new NotFoundException(String.format("User with id=%d was not found", userId));
         }
 
         Event event = eventRepository.findById(eventId).orElseThrow(
-                () -> new NotFoundException("Event with id=" + eventId + " was not found")
+                () -> new NotFoundException(String.format("Event with id=%d was not found", eventId))
         );
 
         log.info("Event initiator: {}, userId {}", event.getInitiator().getId(), userId);
         if (!event.getInitiator().getId().equals(userId)) {
             log.info("user: {} not allowed perfom request for event: {}", userId, eventId);
-            throw new ForbiddenException("You are not allowed to perform this action." +
-                    " You are not initiator of event: " + eventId);
+            throw new ForbiddenException(String.format("You are not allowed to perform this action. You are not initiator of event: %d", eventId));
         }
 
         List<Request> requests = requestsRepository.findByEvent_Id(eventId);
@@ -206,11 +205,11 @@ public class PrivateService {
         log.info("For event: {}", eventId);
 
         if (!userRepository.existsById(userId)) {
-            throw new NotFoundException("User with id=" + userId + " was not found");
+            throw new NotFoundException(String.format("User with id=%d was not found", userId));
         }
 
         Event event = eventRepository.findById(eventId).orElseThrow(
-                () -> new NotFoundException("Event with id=" + eventId + " was not found")
+                () -> new NotFoundException(String.format("Event with id=%d was not found", eventId))
         );
 
         if (!event.getInitiator().getId().equals(userId)) {
@@ -218,8 +217,9 @@ public class PrivateService {
         }
 
         if (!event.getRequestModeration() || event.getParticipantLimit().equals(0)) {
-            throw new ConflictException("Request moderation switched off or Participant limit = 0. Event have " +
-                    event.getConfirmedRequests() + " confirmed requests.");
+            throw new ConflictException(String.format(
+                    "Request moderation switched off or Participant limit = 0. Event have %d confirmed requests.",
+                    event.getConfirmedRequests()));
         }
 
         if (event.getConfirmedRequests() >= event.getParticipantLimit()) {
@@ -266,14 +266,14 @@ public class PrivateService {
         log.info("Adding request from user {}, to event {}", userId, eventId);
 
         User user = userRepository.findById(userId).orElseThrow(
-                () -> new NotFoundException("User with id=" + userId + " was not found"));
+                () -> new NotFoundException(String.format("User with id=%d was not found", userId)));
 
         if (requestsRepository.existsByRequesterIdAndEventId(userId, eventId)) {
-            throw new DataConflictException("Event: " + eventId + " already contain request from user: " + userId);
+            throw new DataConflictException(String.format("Event: %d already contain request from user: %d", eventId, userId));
         }
 
         Event event = eventRepository.findById(eventId).orElseThrow(
-                () -> new NotFoundException("Event with id=" + eventId + " was not found")
+                () -> new NotFoundException(String.format("Event with id=%d was not found", eventId))
         );
 
         if (event.getInitiator().getId().equals(userId)) {
@@ -310,7 +310,7 @@ public class PrivateService {
     public List<RequestDto> getUserRequests(Long userId) {
         log.info("Get requests for events from user {}", userId);
         if (!userRepository.existsById(userId)) {
-            throw new NotFoundException("User with id=" + userId + " was not found");
+            throw new NotFoundException(String.format("User with id=%d was not found", userId));
         }
 
         List<Request> requests = requestsRepository.findByRequester_Id(userId);
@@ -324,20 +324,19 @@ public class PrivateService {
         log.info("Canceling request from user {}, to request {}", userId, requestId);
 
         if (!userRepository.existsById(userId)) {
-            throw new NotFoundException("User with id=" + userId + " was not found");
+            throw new NotFoundException(String.format("User with id=%d was not found", userId));
         }
 
         Request request = requestsRepository.findById(requestId).orElseThrow(
-                () -> new NotFoundException("Request with id=" + requestId + " was not found")
+                () -> new NotFoundException(String.format("Request with id=%d was not found", requestId))
         );
 
         if (!request.getRequester().getId().equals(userId)) {
-            throw new ForbiddenException("User " + userId + " cannot perform request "
-                    + request.getRequester().getId());
+            throw new ForbiddenException(String.format("User %d cannot perform request %d", userId, request.getRequester().getId()));
         }
 
         Event event = eventRepository.findById(request.getEvent().getId()).orElseThrow(
-                () -> new NotFoundException("Event for request with id=" + requestId + " was not found")
+                () -> new NotFoundException(String.format("Event for request with id=%d was not found", requestId))
         );
 
         if (request.getStatus() == RequestStatus.CONFIRMED) {

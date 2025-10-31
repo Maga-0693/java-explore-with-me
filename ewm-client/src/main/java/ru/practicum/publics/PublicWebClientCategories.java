@@ -40,7 +40,7 @@ public class PublicWebClientCategories extends BaseWebClient {
                 .retrieve()
                 .onStatus(status -> status == HttpStatus.NOT_FOUND,
                         response -> {
-                            throw new NotFoundException("Category with id=" + catId + " was not found");
+                            throw new NotFoundException(String.format("Category with id=%d was not found", catId));
                         })
                 .bodyToMono(CategoryDto.class)
                 .block();

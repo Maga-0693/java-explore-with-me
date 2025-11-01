@@ -1545,7 +1545,7 @@
               "\r",
               "pm.test(\"Message indicates reply cannot be restored\", function () {\r",
               "    const replyId = pm.variables.get(\"reply_id\");\r",
-              "    const expectedMessage = `Comment with id=${replyId} can not be restored.Reason:This comment is reply to deleted comment`;\r",
+              "    const expectedMessage = `Comment with id=${replyId} can not be restored. Reason: This comment is reply to deleted comment`;\r",
               "    pm.expect(response.message.trim()).to.eql(expectedMessage);\r",
               "});\r",
               "\r",

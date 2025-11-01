@@ -425,8 +425,7 @@ public class PrivateService {
         checkCommentConditions(userId, eventId);
 
         ru.practicum.comments.Comment comment = commentRepository.findById(commentId).orElseThrow(
-                () -> new NotFoundException(String.format("Comment with id=%d was not found", commentId)))
-        );
+                () -> new NotFoundException(String.format("Comment with id=%d was not found", commentId)));
 
         if (!comment.getAuthor().getId().equals(userId)) {
             throw new ForbiddenException(String.format(

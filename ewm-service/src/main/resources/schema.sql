@@ -111,7 +111,7 @@ CREATE INDEX IF NOT EXISTS idx_compilations_title ON compilations (title);
 CREATE INDEX IF NOT EXISTS idx_compilation_events_compilation ON compilation_events (compilation_id);
 CREATE INDEX IF NOT EXISTS idx_compilation_events_event ON compilation_events (event_id);
 
--- comments.
+-- comments
 CREATE INDEX IF NOT EXISTS idx_comments_user ON comments (user_id);
 CREATE INDEX IF NOT EXISTS idx_comments_event ON comments (event_id);
 CREATE INDEX IF NOT EXISTS idx_comments_parent ON comments (parent_comment_id);

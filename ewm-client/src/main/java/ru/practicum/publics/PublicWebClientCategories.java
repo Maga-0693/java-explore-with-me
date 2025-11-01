@@ -1,0 +1,48 @@
+package ru.practicum.publics;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
+import ru.practicum.base.BaseWebClient;
+import ru.practicum.categories.CategoryDto;
+import ru.practicum.exeption.NotFoundException;
+
+import java.util.List;
+
+@Service
+public class PublicWebClientCategories extends BaseWebClient {
+    private static final String CATEGORIES_API = "/categories";
+
+    public PublicWebClientCategories(@Value("${ewm-service.url}") String baseUrl) {
+
+        super(baseUrl, CATEGORIES_API);
+    }
+
+    public Mono<List<CategoryDto>> getCategories(Integer from, Integer size) {
+        return webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .queryParam("from", from)
+                        .queryParam("size", size)
+                        .build())
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .bodyToFlux(CategoryDto.class)
+                .collectList();
+
+    }
+
+    public CategoryDto getCategory(Long catId) {
+        return webClient.get()
+                .uri("/" + catId)
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .onStatus(status -> status == HttpStatus.NOT_FOUND,
+                        response -> {
+                            throw new NotFoundException(String.format("Category with id=%d was not found", catId));
+                        })
+                .bodyToMono(CategoryDto.class)
+                .block();
+    }
+}

@@ -1,21 +1,24 @@
 package ru.practicum.stats;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriBuilder;
 import ru.practicum.base.BaseWebClient;
 import ru.practicum.hit.NewHitRequest;
 import ru.practicum.hit.ViewStatsDto;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
 @Service
 public class StatsWebClient extends BaseWebClient {
-
     private static final String API_PREFIX = "";
 
     public StatsWebClient(@Value("${stats-server.url}") String serverUrl) {
@@ -44,16 +47,27 @@ public class StatsWebClient extends BaseWebClient {
                                        List<String> uris,
                                        boolean unique) {
         return webClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/stats")
-                        .queryParam("start", start)
-                        .queryParam("end", end)
-                        .queryParam("unique", unique)
-                        .queryParam("uris", uris != null && !uris.isEmpty() ?
-                                String.join(",", uris) : null)
-                        .build())
+                .uri(uriBuilder -> {
+                    UriBuilder builder = uriBuilder
+                            .path("/stats")
+                            .queryParam("start", start)
+                            .queryParam("end", end)
+                            .queryParam("unique", unique);
+
+                    if (uris != null && !uris.isEmpty()) {
+                        uris.forEach(uri -> builder.queryParam("uris", uri));
+                    }
+                    return builder.build();
+                })
                 .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .retrieve()
+                .onStatus(status -> status == HttpStatus.BAD_REQUEST, response -> {
+                    try {
+                        throw new BadRequestException("Bad request: End date can not be before start date");
+                    } catch (BadRequestException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
                 .bodyToFlux(ViewStatsDto.class)
                 .collectList()
                 .block();

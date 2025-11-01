@@ -402,7 +402,7 @@ public class PrivateService {
         );
 
         if (!comment.getAuthor().getId().equals(userId)) {
-            throw new ForbiddenException(String.format("User %d cannot perform request", userId));
+            throw new ForbiddenException(String.format("User %d cannot perform request", userId).trim());
         }
 
         if (!comment.getEvent().getId().equals(eventId)) {
@@ -441,7 +441,7 @@ public class PrivateService {
                 throw new ConflictException(String.format(
                         "Comment with id=%d can not be restored. Reason: This comment is reply to deleted comment",
                         commentId
-                ));
+                ).trim());
             }
 
         }

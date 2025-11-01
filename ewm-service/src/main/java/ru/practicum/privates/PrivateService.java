@@ -438,8 +438,7 @@ public class PrivateService {
             Boolean isParentDeleted = comment.getParentComment().isDeleted();
 
             if (isParentDeleted && command == CommentCommand.RESTORE) {
-                throw new ConflictException(String.format(
-                        "Comment with id=%d can not be restored. Reason: This comment is reply to deleted comment",
+                throw new ConflictException(String.format("Comment with id=%d can not be restored. Reason: This comment is reply to deleted comment",
                         commentId
                 ).trim());
             }

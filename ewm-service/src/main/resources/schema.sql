@@ -85,33 +85,33 @@ CREATE TABLE IF NOT EXISTS comments
     FOREIGN KEY (parent_comment_id) REFERENCES comments (id)
     );
 
--- users
+-- users;
 CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
 
--- categories
+-- categories;
 CREATE INDEX IF NOT EXISTS idx_categories_name ON categories (name);
 
--- events
+-- events;
 CREATE INDEX IF NOT EXISTS idx_events_category ON events (category_id);
 CREATE INDEX IF NOT EXISTS idx_events_initiator ON events (initiator_id);
 CREATE INDEX IF NOT EXISTS idx_events_state ON events (state);
 CREATE INDEX IF NOT EXISTS idx_events_event_date ON events (event_date);
 CREATE INDEX IF NOT EXISTS idx_events_published ON events (published_on);
 
--- requests
+-- requests;
 CREATE INDEX IF NOT EXISTS idx_requests_event ON requests (event_id);
 CREATE INDEX IF NOT EXISTS idx_requests_requester ON requests (requester_id);
 CREATE INDEX IF NOT EXISTS idx_requests_status ON requests (status);
 
--- compilations
+-- compilations;
 CREATE INDEX IF NOT EXISTS idx_compilations_pinned ON compilations (pinned);
 CREATE INDEX IF NOT EXISTS idx_compilations_title ON compilations (title);
 
--- compilation_events
+-- compilation_events;
 CREATE INDEX IF NOT EXISTS idx_compilation_events_compilation ON compilation_events (compilation_id);
 CREATE INDEX IF NOT EXISTS idx_compilation_events_event ON compilation_events (event_id);
 
--- comments
+-- comments;
 CREATE INDEX IF NOT EXISTS idx_comments_user ON comments (user_id);
 CREATE INDEX IF NOT EXISTS idx_comments_event ON comments (event_id);
 CREATE INDEX IF NOT EXISTS idx_comments_parent ON comments (parent_comment_id);

@@ -1,7 +1,7 @@
 package ru.practicum.privates;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
+
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.categories.Category;
 import ru.practicum.categories.CategoryRepository;
+import ru.practicum.comments.*;
 import ru.practicum.events.*;
 import ru.practicum.exeption.*;
 import ru.practicum.requests.*;
@@ -31,9 +32,11 @@ public class PrivateService {
     UserRepository userRepository;
     CategoryRepository categoryRepository;
     RequestsRepository requestsRepository;
+    CommentRepository commentRepository;
 
     EventMapper eventMapper;
     RequestMapper requestMapper;
+    CommentMapper commentMapper;
 
     public EventDto addEvent(Long userId, NewEventRequest request) {
         log.info("Adding event {}", request);
@@ -62,6 +65,7 @@ public class PrivateService {
                 .requestModeration(request.getRequestModeration())
                 .title(request.getTitle())
                 .initiator(initiator)
+                .commentDisabled(request.getCommentDisabled())
                 .build();
 
         Event savedEvent = eventRepository.save(event);
@@ -159,12 +163,18 @@ public class PrivateService {
             event.setEventDate(request.getEventDate());
         }
 
+        if (request.hasCommentDisabled()) {
+            log.info("Set comment disabled {}", request.hasCommentDisabled());
+            event.setCommentDisabled(request.getCommentDisabled());
+        }
+
         if (request.getStateAction() != null) {
             log.info("State action {}", request.getStateAction());
             switch (request.getStateAction()) {
                 case SEND_TO_REVIEW -> event.setState(EventState.PENDING);
                 case CANCEL_REVIEW -> event.setState(EventState.CANCELED);
-                default -> throw new EventDataException(String.format("User cannot perform action: %s", request.getStateAction()));
+                default ->
+                        throw new EventDataException(String.format("User cannot perform action: %s", request.getStateAction()));
             }
             log.info("State  {}", event.getState());
         }

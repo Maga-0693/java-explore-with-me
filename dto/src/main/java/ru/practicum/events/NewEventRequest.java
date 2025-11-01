@@ -53,4 +53,7 @@ public class NewEventRequest implements Dateable {
     @NotBlank
     @Size(min = 3, max = 120)
     String title;
+
+    @Builder.Default
+    Boolean commentDisabled = false;
 }

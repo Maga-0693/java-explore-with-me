@@ -41,6 +41,8 @@ public class UpdateEventRequest implements Dateable {
     @Size(min = 3, max = 120)
     String title;
 
+    Boolean commentDisabled;
+
 
     public boolean hasAnnotation() {
 
@@ -85,5 +87,10 @@ public class UpdateEventRequest implements Dateable {
     public boolean hasTitle() {
 
         return title != null && !title.isBlank();
+    }
+
+    public boolean hasCommentDisabled() {
+
+        return commentDisabled != null;
     }
 }

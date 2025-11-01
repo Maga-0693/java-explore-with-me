@@ -37,7 +37,6 @@ public class StatsInternalController {
             @RequestParam(required = false) List<String> uris,
             @RequestParam(defaultValue = "false") boolean unique
     ) {
-        // Валидация дат
         if (end.isBefore(start)) {
             return createBadRequestResponse("End time must be after start time");
         }

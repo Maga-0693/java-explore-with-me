@@ -1,15 +1,18 @@
 package ru.practicum.privates;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
 import ru.practicum.categories.Category;
 import ru.practicum.categories.CategoryRepository;
+import ru.practicum.comments.*;
 import ru.practicum.events.*;
 import ru.practicum.exeption.*;
 import ru.practicum.requests.*;
@@ -31,9 +34,11 @@ public class PrivateService {
     UserRepository userRepository;
     CategoryRepository categoryRepository;
     RequestsRepository requestsRepository;
+    CommentRepository commentRepository;
 
     EventMapper eventMapper;
     RequestMapper requestMapper;
+    CommentMapper commentMapper;
 
     public EventDto addEvent(Long userId, NewEventRequest request) {
         log.info("Adding event {}", request);
@@ -62,6 +67,7 @@ public class PrivateService {
                 .requestModeration(request.getRequestModeration())
                 .title(request.getTitle())
                 .initiator(initiator)
+                .commentDisabled(request.getCommentDisabled())
                 .build();
 
         Event savedEvent = eventRepository.save(event);
@@ -159,12 +165,18 @@ public class PrivateService {
             event.setEventDate(request.getEventDate());
         }
 
+        if (request.hasCommentDisabled()) {
+            log.info("Set comment disabled {}", request.hasCommentDisabled());
+            event.setCommentDisabled(request.getCommentDisabled());
+        }
+
         if (request.getStateAction() != null) {
             log.info("State action {}", request.getStateAction());
             switch (request.getStateAction()) {
                 case SEND_TO_REVIEW -> event.setState(EventState.PENDING);
                 case CANCEL_REVIEW -> event.setState(EventState.CANCELED);
-                default -> throw new EventDataException(String.format("User cannot perform action: %s", request.getStateAction()));
+                default ->
+                        throw new EventDataException(String.format("User cannot perform action: %s", request.getStateAction()));
             }
             log.info("State  {}", event.getState());
         }
@@ -354,5 +366,232 @@ public class PrivateService {
         request = requestsRepository.save(request);
         log.info("request has been cancelled: {} ", request.getId());
         return requestMapper.requestToRequestDto(request);
+    }
+
+    public CommentDto addComment(Long userId, Long eventId, NewCommentRequest request) {
+        log.info("Adding comment from user {}, to event {}", userId, eventId);
+
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new NotFoundException(String.format("User with id=%d was not found", userId))
+        );
+
+        Event event = eventRepository.findById(eventId).orElseThrow(
+                () -> new NotFoundException(String.format("Event with id=%d was not found", eventId))
+        );
+
+        if (event.getCommentDisabled()) {
+            throw new ConflictException(String.format("Comments are disabled for event %d", eventId));
+        }
+
+        ru.practicum.comments.Comment comment = ru.practicum.comments.Comment.builder()
+                .text(request.getText())
+                .author(user)
+                .event(event)
+                .build();
+
+        return commentMapper.commentToCommentDto(commentRepository.save(comment));
+
+    }
+
+    public CommentDto updateComment(Long userId, Long eventId, Long commentId, UpdateCommentRequest request) {
+
+        checkCommentConditions(userId, eventId);
+
+        ru.practicum.comments.Comment comment = commentRepository.findById(commentId).orElseThrow(
+                () -> new NotFoundException(String.format("Comment with id=%d was not found", commentId))
+        );
+
+        if (!comment.getAuthor().getId().equals(userId)) {
+            throw new ForbiddenException(String.format("User %d cannot perform request", userId).trim());
+        }
+
+        if (!comment.getEvent().getId().equals(eventId)) {
+            throw new ForbiddenException(String.format("Comment with id=%d is not for event=%d", commentId, eventId));
+        }
+
+        if (comment.getText().trim().equalsIgnoreCase(request.getText().trim())) {
+            throw new ConflictException("Nothing to change");
+        }
+
+        comment.setText(request.getText());
+        comment.setEdited(true);
+
+        return commentMapper.commentToCommentDto(commentRepository.save(comment));
+    }
+
+    public CommentDto updateCommentStatus(Long userId, Long eventId, Long commentId, CommentCommand command) {
+        log.info("Deleting comment from user {}, to event {}", userId, eventId);
+
+        checkCommentConditions(userId, eventId);
+
+        ru.practicum.comments.Comment comment = commentRepository.findById(commentId).orElseThrow(
+                () -> new NotFoundException(String.format("Comment with id=%d was not found", commentId)));
+
+        if (!comment.getAuthor().getId().equals(userId)) {
+            throw new ForbiddenException(String.format(
+                    "User %d cannot perform request. Not Author of comment with id=%d",
+                    userId, commentId
+            ));
+        }
+
+        if (comment.getParentComment() != null) {
+            Boolean isParentDeleted = comment.getParentComment().isDeleted();
+
+            if (isParentDeleted && command == CommentCommand.RESTORE) {
+                throw new ConflictException(String.format("Comment with id=%d can not be restored. Reason: This comment is reply to deleted comment",
+                        commentId
+                ).trim());
+            }
+
+        }
+
+        switch (command) {
+            case DELETE -> {
+                markCommentAndRepliesAsDeleted(comment);
+                log.info("comment has been marked as deleted: {} ", comment.getId());
+            }
+            case RESTORE -> {
+                markCommentAndRepliesAsRestored(comment);
+                log.info("comment has been marked as restored: {} ", comment.getId());
+            }
+        }
+        return commentMapper.commentToCommentDto(commentRepository.save(comment));
+    }
+
+    public CommentDto replyToComment(Long userId, Long eventId, Long commentId, NewCommentRequest request) {
+        log.info("Replying user {}, event {}, to comment {}", userId, eventId, commentId);
+        log.info("Replying request {}", request);
+
+        User author = userRepository.findById(userId).orElseThrow(
+                () -> new NotFoundException(String.format("User with id=%d was not found", userId))
+        );
+
+        Event event = eventRepository.findById(eventId).orElseThrow(
+                () -> new NotFoundException(String.format("Event with id=%d was not found", eventId))
+        );
+
+        ru.practicum.comments.Comment parentComment = commentRepository.findById(commentId).orElseThrow(
+                () -> new NotFoundException(String.format("Parent comment with id=%d was not found", commentId))
+        );
+
+        if (event.getCommentDisabled()) {
+            throw new ConflictException(String.format("Comments for event with id=%d are disabled", eventId));
+        }
+
+        ru.practicum.comments.Comment reply = ru.practicum.comments.Comment.builder()
+                .text(request.getText())
+                .author(author)
+                .event(event)
+                .parentComment(parentComment)
+                .build();
+
+        reply = commentRepository.save(reply);
+        log.info("Reply saved: {} ", reply);
+
+        return commentMapper.commentToCommentDto(reply);
+    }
+
+    @Transactional(readOnly = true)
+    public Flux<CommentDto> getComments(Long userId, Long eventId, Integer from, Integer size) {
+        log.info("Getting comments from user {}, to event {}", userId, eventId);
+        checkCommentConditions(userId, eventId);
+
+        Pageable pageable = PageRequest.of(from / size, size, Sort.by("creationDate").descending());
+
+        Page<ru.practicum.comments.Comment> commentPage = commentRepository.findByEvent_IdAndDeleted(eventId, false, pageable);
+
+        return Flux.fromIterable(commentPage.getContent())
+                .map(commentMapper::commentToCommentDto);
+    }
+
+
+    private void markCommentAndRepliesAsDeleted(ru.practicum.comments.Comment comment) {
+        comment.setDeleted(true);
+
+        if (!comment.getReplies().isEmpty()) {
+            for (ru.practicum.comments.Comment reply : comment.getReplies()) {
+                if (!reply.isDeleted()) {
+                    reply.setDeleted(true);
+                    markCommentAndRepliesAsDeleted(reply);
+                }
+            }
+        }
+    }
+
+    private void markCommentAndRepliesAsRestored(ru.practicum.comments.Comment comment) {
+        comment.setDeleted(false);
+
+        if (!comment.getReplies().isEmpty()) {
+            for (ru.practicum.comments.Comment reply : comment.getReplies()) {
+                if (reply.isDeleted()) {
+                    reply.setDeleted(false);
+                    markCommentAndRepliesAsRestored(reply);
+                }
+            }
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public Flux<CommentDto> getUserComments(Long userId, CommentsShowingParam param, Integer from, Integer size) {
+        log.info("Getting comments from user {}, to comment {}", userId, param);
+
+        if (!userRepository.existsById(userId)) {
+            throw new NotFoundException(String.format("User with id=%d was not found", userId));
+        }
+
+        Pageable pageable = PageRequest.of(from / size, size, Sort.by("creationDate").descending());
+
+        Page<Comment> comments = switch (param) {
+            case SHOW_ALL -> commentRepository.findByAuthor_Id(userId, pageable);
+            case SHOW_ACTIVE -> commentRepository
+                    .findByAuthor_IdAndDeleted(userId, false, pageable);
+            case SHOW_DELETED -> commentRepository
+                    .findByAuthor_IdAndDeleted(userId, true, pageable);
+        };
+
+        return Flux.fromIterable(comments.getContent())
+                .map(commentMapper::commentToCommentDto);
+
+    }
+
+    public SimpleEventDto updateCommentsSetting(Long userId, Long eventId, CommentsSetting command) {
+        log.info("Updating comment settings from user {}, to event {}", userId, eventId);
+
+        if (!userRepository.existsById(userId)) {
+            throw new NotFoundException(String.format("User with id=%d was not found", userId));
+        }
+
+        Event event = eventRepository.findById(eventId).orElseThrow(
+                () -> new NotFoundException(String.format("Event with id=%d was not found", eventId))
+        );
+
+        if (!event.getInitiator().getId().equals(userId)) {
+            throw new ForbiddenException(String.format("User with id=%d not allowed to update comment settings", userId));
+        }
+
+        if (command == CommentsSetting.DISABLE_COMMENTS && event.getCommentDisabled()) {
+            throw new ConflictException("Comments are already disabled");
+        }
+
+        if (command == CommentsSetting.ENABLE_COMMENTS && !event.getCommentDisabled()) {
+            throw new ConflictException("Comments are already enabled");
+        }
+
+        switch (command) {
+            case DISABLE_COMMENTS -> event.setCommentDisabled(true);
+            case ENABLE_COMMENTS -> event.setCommentDisabled(false);
+        }
+        log.info("Comments setting updated. Setting {} for event {}", command, eventId);
+
+        return eventMapper.toSimpleDto(eventRepository.save(event));
+    }
+
+    private void checkCommentConditions(Long userId, Long eventId) {
+        if (!userRepository.existsById(userId)) {
+            throw new NotFoundException(String.format("User with id=%d was not found", userId));
+        }
+        if (!eventRepository.existsById(eventId)) {
+            throw new NotFoundException(String.format("Event with id=%d was not found", eventId));
+        }
     }
 }

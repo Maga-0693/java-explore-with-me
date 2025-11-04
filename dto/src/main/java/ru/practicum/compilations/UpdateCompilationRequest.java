@@ -34,5 +34,4 @@ public class UpdateCompilationRequest implements Requestable {
 
         return title != null && !title.isBlank();
     }
-
 }

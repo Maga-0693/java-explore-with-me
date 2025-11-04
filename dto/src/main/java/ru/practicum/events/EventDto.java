@@ -38,5 +38,4 @@ public class EventDto {
     String state;
     String title;
     Long views;
-
 }
